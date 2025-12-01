@@ -37,17 +37,36 @@ export default function Home() {
 
     if (editId) {
       // Update
-      const { error } = await supabase.from("students").update(form).eq("id", editId)
+      const { error } = await supabase
+        .from("students")
+        .update({
+          name: form.name!,
+          email: form.email!,
+          phone_number: form.phone_number!,
+          gender: form.gender!
+        })
+        .eq("id", editId)
 
       if (error) {
         toast.error("Failed to update")
       } else {
         toast.success("Student updated successfully!")
-
+        setEditId(null)
+        setForm({
+          name: "",
+          email: "",
+          phone_number: "",
+          gender: "male"
+        })
       }
     } else {
       //Add
-      const { error } = await supabase.from("students").insert([form])
+      const { error } = await supabase.from("students").insert({
+        name: form.name!,
+        email: form.email!,
+        phone_number: form.phone_number,
+        gender: form.gender
+      })
 
       if (error) {
         toast.error(`Failed to create ${error.message}`)
@@ -59,7 +78,7 @@ export default function Home() {
         name: "",
         email: "",
         phone_number: "",
-        gender: "Male"
+        gender: "male"
       })
     }
 
@@ -80,7 +99,12 @@ export default function Home() {
   }
   // Handle student edit
   function handleStudentEdit(student: Student) {
-    setForm(student)
+    setForm({
+      name: student.name,
+      email: student.email,
+      phone_number: student.phone_number,
+      gender: student.gender
+    })
     if (student.id) {
       setEditId(Number(student.id))
     }

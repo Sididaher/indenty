@@ -1,4 +1,10 @@
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export interface Database {
   public: {
@@ -10,6 +16,7 @@ export interface Database {
           email: string
           phone_number: string
           gender: string
+          created_at: string | null
         }
         Insert: {
           id?: number
@@ -17,6 +24,7 @@ export interface Database {
           email: string
           phone_number?: string
           gender?: string
+          created_at?: string
         }
         Update: {
           id?: number
@@ -24,11 +32,22 @@ export interface Database {
           email?: string
           phone_number?: string
           gender?: string
+          created_at?: string
         }
+        Relationships: []
       }
     }
-    Views: {}
-    Functions: {}
-    Enums: {}
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
