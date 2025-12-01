@@ -15,46 +15,93 @@ export default function AdminPage() {
     femaleCount: 0,
     recentAdditions: 0
   })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStudents()
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('students-changes')
+      .on('postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'students'
+        },
+        () => {
+          console.log('Database change detected, refreshing...')
+          fetchStudents()
+        }
+      )
+      .subscribe()
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    calculateStats()
+    if (students.length >= 0) {
+      calculateStats()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [students])
 
   async function fetchStudents() {
-    const { data, error } = await supabase
-      .from("students")
-      .select("*")
-      .order('created_at', { ascending: false })
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .order('created_at', { ascending: false })
 
-    if (!error && data) {
-      setStudents(data)
+      if (error) {
+        console.error('Error fetching students:', error)
+      } else if (data) {
+        console.log('Fetched students:', data)
+        setStudents(data)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
   function calculateStats() {
-    const maleCount = students.filter(s => s.gender === 'male').length
-    const femaleCount = students.filter(s => s.gender === 'female').length
+    console.log('Calculating stats for', students.length, 'students')
+
+    const maleCount = students.filter(s => s.gender?.toLowerCase() === 'male').length
+    const femaleCount = students.filter(s => s.gender?.toLowerCase() === 'female').length
 
     // Students added in last 7 days
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const recentAdditions = students.filter(s => {
       if (s.created_at) {
-        return new Date(s.created_at) > sevenDaysAgo
+        try {
+          const createdDate = new Date(s.created_at)
+          return createdDate > sevenDaysAgo
+        } catch (e) {
+          console.error('Error parsing date:', e)
+          return false
+        }
       }
       return false
     }).length
 
-    setStats({
+    const newStats = {
       totalStudents: students.length,
       maleCount,
       femaleCount,
       recentAdditions
-    })
+    }
+
+    console.log('Updated stats:', newStats)
+    setStats(newStats)
   }
 
   return (
@@ -69,6 +116,15 @@ export default function AdminPage() {
       </div>
 
       <div className="container my-5">
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="spinner-border text-primary" role="status" style={{width: '3rem', height: '3rem'}}>
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <p className="mt-3" style={{color: '#64748b'}}>Loading dashboard...</p>
+          </div>
+        ) : (
+          <>
         {/* Statistics Cards */}
         <div className="row g-4 mb-5">
           <div className="col-md-3">
@@ -385,6 +441,8 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+        </>
+        )}
       </div>
     </>
   );
