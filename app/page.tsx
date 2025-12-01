@@ -27,6 +27,23 @@ export default function Home() {
   const [editId, setEditId] = useState<number | null>(null)
 
   useEffect(() => {
+    // Test Supabase connection
+    const testConnection = async () => {
+      try {
+        console.log('Testing Supabase connection...')
+        const { error } = await supabase.from('students').select('count', { count: 'exact', head: true })
+        if (error) {
+          console.error('Connection test failed:', error)
+          toast.error('Database connection failed. Please check your Supabase settings.')
+        } else {
+          console.log('Connection successful!')
+        }
+      } catch (err) {
+        console.error('Connection test error:', err)
+      }
+    }
+
+    testConnection()
     fetchStudents()
   }, [])
   //Handle Form Submit
@@ -88,13 +105,19 @@ export default function Home() {
 
   // Fetch Students Data
   async function fetchStudents() {
-    const { data, error } = await supabase.from("students").select("*")
+    try {
+      const { data, error } = await supabase.from("students").select("*")
 
-    if (error) {
-      toast.error(`Failed to create ${error.message}`)
-    } else {
-      console.log(data)
-      setStudents(data || [])
+      if (error) {
+        console.error('Error fetching students:', error)
+        toast.error(`Failed to fetch students: ${error.message || 'Unknown error'}`)
+      } else {
+        console.log('Fetched students:', data)
+        setStudents(data || [])
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching students:', err)
+      toast.error('Failed to connect to database. Please check your connection.')
     }
   }
   // Handle student edit
